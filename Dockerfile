@@ -23,7 +23,7 @@ ENV PATH="/home/user/.local/bin:/uv/bin:$PATH" \
 WORKDIR /app
 
 # Create a virtual environment owned by user 1000 to safely store packages
-ENV VIRTUAL_ENV=/home/user/venv
+ENV VIRTUAL_ENV=/app/.venv
 RUN uv venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 

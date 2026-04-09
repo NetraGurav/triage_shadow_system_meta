@@ -13,7 +13,6 @@ __pycache__/
 it_ticket_triage.egg-info/
 
 # Lock files (not needed in container)
-uv.lock
 
 # Environment files (secrets injected at runtime)
 .env
