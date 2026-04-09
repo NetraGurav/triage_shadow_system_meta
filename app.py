@@ -173,7 +173,6 @@ def integrated_triage(user_input: str) -> Tuple[str, str, str]:
     status_color = "#10B981" if regret < 0.3 else "#F59E0B"
     
     # LLM Diagnostics
-    backend_html = ""
     if agent:
         b_status = agent.get_backend_status()
         active = b_status["active_backend"]
@@ -194,11 +193,25 @@ def integrated_triage(user_input: str) -> Tuple[str, str, str]:
         missing_str = f"<br><span style='font-size:0.8em; color:#ef4444;'>Missing: {', '.join(missing)}</span>" if missing else ""
         
         backend_html = f"""
-        <div style="font-size: 0.85em; margin-top: 10px; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+        <div style="font-size: 0.85em; margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.25); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
             <b>📡 LLM Status:</b> {conn_icon} {active.upper()} ({b_status['model']})
             {libs_str}
             {missing_str}
             {f'<br><span style="font-size:0.8em; color:#ef4444;">Error: {b_status["last_error"]}</span>' if b_status.get("last_error") else ""}
+        </div>
+        """
+    else:
+        # Check environment variables directly to see what's missing
+        is_hf = os.environ.get("SPACES_ZERO_GPU") or os.environ.get("HF_SPACE_ID")
+        setup_msg = "Add these in Space Settings > Variables and secrets" if is_hf else "Check your local .env file"
+        
+        backend_html = f"""
+        <div style="font-size: 0.85em; margin-top: 10px; padding: 10px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.2);">
+            <b style="color: #ef4444;">⚠️ LLM Unconfigured</b>
+            <p style="margin: 4px 0; font-size: 0.9em; color: #9CA3AF;">The LLM agent is inactive because no API keys were found.</p>
+            <p style="margin: 4px 0; font-size: 0.8em; color: #D1D5DB;"><b>Needed:</b> GROQ_API_KEY or GEMINI_API_KEY</p>
+            <hr style="border: 0; border-top: 1px solid rgba(239, 68, 68, 0.2); margin: 8px 0;">
+            <p style="margin: 0; font-size: 0.8em; font-style: italic;">{setup_msg}</p>
         </div>
         """
 
