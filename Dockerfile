@@ -28,8 +28,8 @@ RUN uv venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Install python dependencies using uv
-COPY --chown=user requirements.txt .
-RUN uv pip install --no-cache -r requirements.txt
+COPY --chown=user pyproject.toml uv.lock* requirements.txt ./
+RUN uv sync --frozen --no-cache
 
 # Copy the rest of the application
 COPY --chown=user . .
