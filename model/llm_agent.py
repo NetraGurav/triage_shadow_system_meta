@@ -158,8 +158,14 @@ class LLMTriageAgent:
                 self._using_groq = True
                 print(f"[LLMAgent] Initialised Groq model: {self._model}")
             except Exception as e:
-                print(f"[LLMAgent] Groq init failed: {e}")
+                self._last_error = f"Groq init failed: {e}"
+                print(f"[LLMAgent] {self._last_error}")
                 self._using_groq = False
+        else:
+            if not _GROQ_AVAILABLE:
+                print("[LLMAgent] Groq library not installed")
+            if not self._groq_key:
+                print("[LLMAgent] Groq API key missing")
 
         # Initialise Gemini client
         self._using_gemini = False
@@ -175,8 +181,15 @@ class LLMTriageAgent:
                 self._using_gemini = True
                 print(f"[LLMAgent] Initialised Gemini model: {self._model}")
             except Exception as e:
-                print(f"[LLMAgent] Gemini init failed: {e}")
+                self._last_error = f"Gemini init failed: {e}"
+                print(f"[LLMAgent] {self._last_error}")
                 self._using_gemini = False
+        else:
+            if not self._using_groq:
+                if not _GEMINI_AVAILABLE:
+                    print("[LLMAgent] Gemini library not installed")
+                if not self._gemini_key:
+                    print("[LLMAgent] Gemini API key missing")
 
         # Initialise OpenAI client
         if _OPENAI_AVAILABLE and self._token:
@@ -270,11 +283,16 @@ class LLMTriageAgent:
         return {
             "active_backend": "groq" if self._using_groq else ("gemini" if self._using_gemini else ("openai/hf" if self._client else "none")),
             "model": self._model,
-            "groq_key": bool(self._groq_key),
-            "gemini_key": bool(self._gemini_key),
-            "hf_token": bool(self._token),
+            "groq_key": bool(self._groq_key and len(self._groq_key) > 5),
+            "gemini_key": bool(self._gemini_key and len(self._gemini_key) > 5),
+            "hf_token": bool(self._token and len(self._token) > 5),
             "last_error": self._last_error,
-            "connected": self._using_groq or self._using_gemini or self._client is not None
+            "connected": self._using_groq or self._using_gemini or self._client is not None,
+            "libs": {
+                "groq": _GROQ_AVAILABLE,
+                "gemini": _GEMINI_AVAILABLE,
+                "openai": _OPENAI_AVAILABLE
+            }
         }
 
     # ── LLM call ──────────────────────────────────────────────────────────────

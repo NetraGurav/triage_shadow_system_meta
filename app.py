@@ -173,12 +173,21 @@ def integrated_triage(user_input: str) -> Tuple[str, str, str]:
         if not b_status["gemini_key"]: missing.append("GEMINI_API_KEY")
         if not b_status["hf_token"]: missing.append("HF_TOKEN")
         
+        libs = b_status.get("libs", {})
+        lib_status = []
+        for l_name, l_avail in libs.items():
+            icon = "✅" if l_avail else "❌"
+            lib_status.append(f"{icon} {l_name.capitalize()}")
+        
+        libs_str = f"<br><span style='font-size:0.8em;'>Libs: {', '.join(lib_status)}</span>"
         missing_str = f"<br><span style='font-size:0.8em; color:#ef4444;'>Missing: {', '.join(missing)}</span>" if missing else ""
         
         backend_html = f"""
         <div style="font-size: 0.85em; margin-top: 10px; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
             <b>📡 LLM Status:</b> {conn_icon} {active.upper()} ({b_status['model']})
+            {libs_str}
             {missing_str}
+            {f'<br><span style="font-size:0.8em; color:#ef4444;">Error: {b_status["last_error"]}</span>' if b_status.get("last_error") else ""}
         </div>
         """
 
