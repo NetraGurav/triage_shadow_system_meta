@@ -20,7 +20,7 @@ Built for agent training and evaluation using a **regret-based RL reward signal*
 
 ### 🚀 Live Demo & Repository
 - **Hugging Face Space**: [Iamnetra/Triage_shadow](https://huggingface.co/spaces/Iamnetra/Triage_shadow)
-- **GitHub Repository**: [NetraGurav/triage_shadow](https://github.com/NetraGurav/triage_shadow)
+- **GitHub Repository**: [NetraGurav/triage_shadow_system_meta](https://github.com/NetraGurav/triage_shadow_system_meta)
 
 ---
 
