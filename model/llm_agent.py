@@ -187,12 +187,19 @@ class LLMTriageAgent:
         # Resolve token for OpenAI/HF
         self._token = self._resolve_token()
 
-        # Initialise OpenAI client only if a token and base URL are likely valid
-        if _OPENAI_AVAILABLE and self._token and not (self._using_groq or self._using_gemini):
+        # Initialise OpenAI client
+        # REQUIREMENT: "Participants must use OpenAI Client for all LLM calls"
+        # We ensure the OpenAI client is always initialised if a token is present.
+        if _OPENAI_AVAILABLE and self._token:
             self._client = OpenAI(
                 api_key=self._token,
                 base_url=self._api_base,
             )
+            # If we have a custom API_BASE_URL, we force usage of the OpenAI client
+            if "openai.com" not in self._api_base.lower() and "router.huggingface.co" not in self._api_base.lower():
+                self._using_groq = False
+                self._using_gemini = False
+                print(f"[LLMAgent] Forced OpenAI client usage for custom base: {self._api_base}")
         else:
             self._client = None
         
