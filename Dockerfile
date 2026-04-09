@@ -19,9 +19,14 @@ ENV PATH="/home/user/.local/bin:/uv/bin:$PATH" \
 
 WORKDIR /app
 
+# Create a virtual environment owned by user 1000 to safely store packages
+ENV VIRTUAL_ENV=/home/user/venv
+RUN uv venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
 # Install python dependencies using uv
 COPY --chown=user requirements.txt .
-RUN uv pip install --system --no-cache -r requirements.txt
+RUN uv pip install --no-cache -r requirements.txt
 
 # Copy the rest of the application
 COPY --chown=user . .
