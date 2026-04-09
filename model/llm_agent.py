@@ -138,8 +138,7 @@ class LLMTriageAgent:
 
     def __init__(self, use_fallback: bool = True):
         self._api_base  = os.environ.get("API_BASE_URL",  "https://api.openai.com/v1")
-        self._model     = os.environ.get("MODEL_NAME",    "gpt-4o-mini").strip()
-        self._token = self._resolve_token()
+        self._model     = os.environ.get("MODEL_NAME", "").strip()
         self._use_fallback = use_fallback
         
         # Flexibility: Support both name variants for Gemini/Google
@@ -150,9 +149,10 @@ class LLMTriageAgent:
         self._using_groq = False
         if _GROQ_AVAILABLE and self._groq_key and len(self._groq_key) > 5:
             try:
-                # If using default Llama but no specific model name provided, ensure it's a Groq model
-                if "llama" in self._model.lower() and "gpt" in self._model.lower(): # Case where default is weird
-                    pass 
+                # If no model provided, default to a robust Groq Llama model
+                if not self._model:
+                    self._model = "llama-3.3-70b-versatile"
+                    print(f"[LLMAgent] Defaulting to Groq model: {self._model}")
                 
                 self._groq_client = Groq(api_key=self._groq_key)
                 self._using_groq = True
@@ -161,20 +161,15 @@ class LLMTriageAgent:
                 self._last_error = f"Groq init failed: {e}"
                 print(f"[LLMAgent] {self._last_error}")
                 self._using_groq = False
-        else:
-            if not _GROQ_AVAILABLE:
-                print("[LLMAgent] Groq library not installed")
-            if not self._groq_key:
-                print("[LLMAgent] Groq API key missing")
-
+        
         # Initialise Gemini client
         self._using_gemini = False
         if not self._using_groq and _GEMINI_AVAILABLE and self._gemini_key:
             try:
-                # Automagic: if a Gemini key is provided, but model name is the default Llama, switch to Gemini
-                if "llama" in self._model.lower() or "gpt" in self._model.lower():
+                # If no model provided or it's an OpenAI model name, default to Gemini
+                if not self._model or "gpt" in self._model.lower() or "llama" in self._model.lower():
                      self._model = "gemini-1.5-flash"
-                     print(f"[LLMAgent] Auto-switching to {self._model} for Gemini backend")
+                     print(f"[LLMAgent] Defaulting to Gemini model: {self._model}")
 
                 genai.configure(api_key=self._gemini_key)
                 self._gemini_model = genai.GenerativeModel(self._model)
@@ -184,15 +179,16 @@ class LLMTriageAgent:
                 self._last_error = f"Gemini init failed: {e}"
                 print(f"[LLMAgent] {self._last_error}")
                 self._using_gemini = False
-        else:
-            if not self._using_groq:
-                if not _GEMINI_AVAILABLE:
-                    print("[LLMAgent] Gemini library not installed")
-                if not self._gemini_key:
-                    print("[LLMAgent] Gemini API key missing")
 
-        # Initialise OpenAI client
-        if _OPENAI_AVAILABLE and self._token:
+        # Final fallback model name if still somehow empty
+        if not self._model:
+            self._model = "gpt-4o-mini"
+
+        # Resolve token for OpenAI/HF
+        self._token = self._resolve_token()
+
+        # Initialise OpenAI client only if a token and base URL are likely valid
+        if _OPENAI_AVAILABLE and self._token and not (self._using_groq or self._using_gemini):
             self._client = OpenAI(
                 api_key=self._token,
                 base_url=self._api_base,
@@ -202,10 +198,13 @@ class LLMTriageAgent:
         
         self._last_error: Optional[str] = None
 
-        # SFT fallback model (always initialised)
+        # SFT fallback model (always initialised if requested)
         self._fallback_model: Optional[TriageModel] = None
         if use_fallback:
-            self._fallback_model = TriageModel().fit()
+            try:
+                self._fallback_model = TriageModel.load("model/saved_model.pkl")
+            except:
+                self._fallback_model = TriageModel().fit()
 
     def _resolve_token(self) -> str:
         """Intelligently pick the correct token based on API base URL."""
