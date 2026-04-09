@@ -33,9 +33,8 @@ import re
 from typing import Dict, Any, Optional
 
 try:
-    raise ImportError("Bypassing hanging module")
-    # import google.generativeai as genai
-    # _GEMINI_AVAILABLE = True
+    import google.generativeai as genai
+    _GEMINI_AVAILABLE = True
 except ImportError:
     _GEMINI_AVAILABLE = False
 
