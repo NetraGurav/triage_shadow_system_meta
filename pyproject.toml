@@ -1,0 +1,38 @@
+[project]
+name = "it-ticket-triage"
+version = "1.0.0"
+description = "IT Ticket Triage OpenEnv Submission"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic>=2.0",
+    "python-dotenv",
+    "openai>=1.30.0",
+    "gradio>=4.0.0",
+    "scikit-learn>=1.4.0",
+    "numpy>=1.26.0",
+    "pyyaml>=6.0.1",
+    "google-generativeai",
+    "groq",
+]
+
+[project.scripts]
+server = "server.app:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+# ── OpenEnv validator metadata ─────────────────────────────────────────────────
+[tool.openenv]
+environment = "it-ticket-triage-env"
+version = "1.0.0"
+config = "openenv.yaml"
+server_command = "uvicorn app:app --host 0.0.0.0 --port 7860"
+ping_path = "/reset"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["data*", "env*", "model*", "server*"]

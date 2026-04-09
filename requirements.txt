@@ -1,0 +1,21 @@
+# Core ML / NLP
+scikit-learn>=1.5.0
+numpy>=1.26.0
+
+# OpenAI-compatible client
+openai>=1.30.0
+
+# Web and UI
+gradio>=4.36.0
+fastapi>=0.111.0
+uvicorn>=0.30.0
+
+# Pydantic (typed models)
+pydantic>=2.0
+
+# Utilities
+python-dotenv
+pyyaml>=6.0.1
+google-generativeai
+groq
+rich

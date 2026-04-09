@@ -1,0 +1,98 @@
+spec_version: 1
+name: it-ticket-triage
+type: space
+runtime: fastapi
+app: server.app:app
+port: 8000
+
+description: >
+  An OpenEnv-compliant reinforcement learning environment for AI-powered
+  IT support ticket triage. The agent classifies, prioritizes, and routes
+  tickets using structured observation and a regret-based RL reward signal.
+
+author: openenv-hackathon
+license: MIT
+
+# ─── OBSERVATION SPACE ────────────────────────────────────────────────────────
+observation_space:
+  type: dict
+  fields:
+    ticket_id:
+      type: string
+      description: Unique identifier for the ticket
+    raw_text:
+      type: string
+      description: Original unstructured ticket text
+    text_length:
+      type: integer
+      description: Character count of raw_text
+    word_count:
+      type: integer
+      description: Word count of raw_text
+    has_urgency_keywords:
+      type: boolean
+    has_hardware_keywords:
+      type: boolean
+    has_software_keywords:
+      type: boolean
+    has_network_keywords:
+      type: boolean
+    has_access_keywords:
+      type: boolean
+    has_security_keywords:
+      type: boolean
+    tfidf_features:
+      type: array
+      shape: [50]
+    task_difficulty:
+      type: string
+      enum: [easy, medium, hard]
+
+# ─── ACTION SPACE ─────────────────────────────────────────────────────────────
+action_space:
+  type: dict
+  fields:
+    category:
+      type: string
+      enum: [hardware, software, network, access, security]
+    priority:
+      type: string
+      enum: [P1, P2, P3, P4]
+    route:
+      type: string
+      enum: [auth_team, network_team, hardware_team, security_team, dev_team]
+
+# ─── TASKS ────────────────────────────────────────────────────────────────────
+tasks:
+  - id: easy
+    name: Clear Ticket Triage
+    description: Tickets with obvious, unambiguous classification signals.
+    difficulty: easy
+    grader: env.graders.EasyGrader
+    score_range: [0.0, 1.0]
+
+  - id: medium
+    name: Ambiguous Ticket Triage
+    description: Tickets with mixed signals or overlapping issue types.
+    difficulty: medium
+    grader: env.graders.MediumGrader
+    score_range: [0.0, 1.0]
+
+  - id: hard
+    name: Multi-Issue Ticket Triage
+    description: Tickets describing multiple simultaneous issues or security incidents.
+    difficulty: hard
+    grader: env.graders.HardGrader
+    score_range: [0.0, 1.0]
+
+# ─── RL CONFIGURATION ─────────────────────────────────────────────────────────
+rl:
+  reward_type: regret_based
+  shadow_evaluation: true
+  enumerate_all_actions: true
+
+# ─── ENVIRONMENT SETTINGS ─────────────────────────────────────────────────────
+environment:
+  max_steps_per_episode: 1
+  reset_on_task_switch: true
+  seed: 42

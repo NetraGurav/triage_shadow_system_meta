@@ -1,0 +1,15 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.gradio/
+flagged/
+*.log
+# model/saved_model.pkl
+direct_out.txt
+inference_out.txt
+openai_out.txt
+test_out.txt
+models_list.txt
+types.txt
+.vscode/
