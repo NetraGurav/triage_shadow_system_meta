@@ -21,7 +21,7 @@ WORKDIR /app
 
 # Install python dependencies using uv
 COPY --chown=user requirements.txt .
-RUN uv pip install --no-cache -r requirements.txt
+RUN uv pip install --system --no-cache -r requirements.txt
 
 # Copy the rest of the application
 COPY --chown=user . .
