@@ -163,16 +163,37 @@ class HardGrader:
 
 # ─── Registry ─────────────────────────────────────────────────────────────────
 
-GRADER_REGISTRY = {
-    "easy":   EasyGrader(),
-    "medium": MediumGrader(),
-    "hard":   HardGrader(),
-}
+_EASY   = EasyGrader()
+_MEDIUM = MediumGrader()
+_HARD   = HardGrader()
+
+
+def _clamp(score: float) -> float:
+    """Ensure score is strictly within (0, 1) as required by Phase 2 validation."""
+    return round(max(0.01, min(score, 0.99)), 4)
+
+
+def grade_easy(action: Dict, label: Dict) -> float:
+    """Entry point for OpenEnv easy task validation."""
+    return _clamp(_EASY.score(action, label))
+
+
+def grade_medium(action: Dict, label: Dict) -> float:
+    """Entry point for OpenEnv medium task validation."""
+    return _clamp(_MEDIUM.score(action, label))
+
+
+def grade_hard(action: Dict, label: Dict) -> float:
+    """Entry point for OpenEnv hard task validation."""
+    return _clamp(_HARD.score(action, label))
 
 
 def get_grader(difficulty: str):
-    """Return the grader instance for the given difficulty level."""
-    grader = GRADER_REGISTRY.get(difficulty)
-    if grader is None:
-        raise ValueError(f"Unknown difficulty: {difficulty!r}. Choose from {list(GRADER_REGISTRY)}")
-    return grader
+    """Return a callable that returns a clamped score."""
+    if difficulty == "easy":
+        return _EASY
+    if difficulty == "medium":
+        return _MEDIUM
+    if difficulty == "hard":
+        return _HARD
+    raise ValueError(f"Unknown difficulty: {difficulty!r}")
