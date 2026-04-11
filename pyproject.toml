@@ -36,4 +36,4 @@ ping_path = "/reset"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["data*", "env*", "model*", "server*"]
+include = ["data*", "tasks*", "model*", "server*"]

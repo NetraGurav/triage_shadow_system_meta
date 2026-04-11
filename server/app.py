@@ -17,8 +17,8 @@ from rich.table import Table
 
 # ── local imports ──────────────────────────────────────────────────────────────
 from model.sft_model import TriageModel
-from env.environment import TicketTriageEnv
-from env.models import (
+from tasks.environment import TicketTriageEnv
+from tasks.models import (
     ResetRequest,
     ResetResponse,
     StepRequest,

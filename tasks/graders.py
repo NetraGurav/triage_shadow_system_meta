@@ -58,6 +58,11 @@ def _field_score(predicted: str, actual: str) -> float:
     return 1.0 if str(predicted).strip().lower() == str(actual).strip().lower() else 0.0
 
 
+def _clamp(score: float) -> float:
+    """Ensure score is strictly within (0, 1) as required by Phase 2 validation."""
+    return round(max(0.01, min(score, 0.99)), 4)
+
+
 # ─── Easy Grader ──────────────────────────────────────────────────────────────
 
 class EasyGrader:
@@ -83,7 +88,7 @@ class EasyGrader:
             + self.WEIGHTS["priority"] * pri
             + self.WEIGHTS["route"]   * route
         )
-        return round(total, 4)
+        return _clamp(total)
 
 
 # ─── Medium Grader ────────────────────────────────────────────────────────────
@@ -111,7 +116,7 @@ class MediumGrader:
             + self.WEIGHTS["priority"] * pri
             + self.WEIGHTS["route"]   * route
         )
-        return round(min(total, 1.0), 4)
+        return _clamp(total)
 
 
 # ─── Hard Grader ──────────────────────────────────────────────────────────────
@@ -158,7 +163,7 @@ class HardGrader:
             if action.get("route", "") != expected_route:
                 base -= self.MULTI_ISSUE_PENALTY
 
-        return round(max(0.0, min(base, 1.0)), 4)
+        return _clamp(base)
 
 
 # ─── Registry ─────────────────────────────────────────────────────────────────
@@ -168,28 +173,66 @@ _MEDIUM = MediumGrader()
 _HARD   = HardGrader()
 
 
-def _clamp(score: float) -> float:
-    """Ensure score is strictly within (0, 1) as required by Phase 2 validation."""
-    return round(max(0.01, min(score, 0.99)), 4)
+def _extract_data(trajectory_or_action: Any, task_or_label: Any = None) -> tuple[Dict, Dict]:
+    """
+    Resiliently extract the last action and the ground-truth label.
+    
+    Supports:
+        (action_dict, label_dict)
+        (trajectory_list, task_dict)
+    """
+    action = {}
+    label = {}
+
+    # Case 1: Trajectory list (Standard OpenEnv validator)
+    if isinstance(trajectory_or_action, list) and len(trajectory_or_action) > 0:
+        last_step = trajectory_or_action[-1]
+        
+        # Action is usually in the step itself or a sub-dict
+        action = last_step.get("action", {})
+        
+        # Label is often in 'info' or 'ground_truth' or the 'task' arg
+        info = last_step.get("info", {})
+        label = info.get("ground_truth") or info.get("label") or {}
+        
+        # If label still empty, check the second argument (task)
+        if not label and isinstance(task_or_label, dict):
+            label = task_or_label.get("label") or task_or_label
+
+    # Case 2: Direct call (Our internal environment)
+    elif isinstance(trajectory_or_action, dict):
+        action = trajectory_or_action
+        label = task_or_label or {}
+
+    return action, label
 
 
-def grade_easy(action: Dict, label: Dict) -> float:
-    """Entry point for OpenEnv easy task validation."""
-    return _clamp(_EASY.score(action, label))
+def grade_easy(trajectory_or_action: Any, task_or_label: Any = None) -> float:
+    """Resilient entry point for OpenEnv easy task validation."""
+    action, label = _extract_data(trajectory_or_action, task_or_label)
+    if not label:
+        return 0.01 # Baseline floor
+    return _EASY.score(action, label)
 
 
-def grade_medium(action: Dict, label: Dict) -> float:
-    """Entry point for OpenEnv medium task validation."""
-    return _clamp(_MEDIUM.score(action, label))
+def grade_medium(trajectory_or_action: Any, task_or_label: Any = None) -> float:
+    """Resilient entry point for OpenEnv medium task validation."""
+    action, label = _extract_data(trajectory_or_action, task_or_label)
+    if not label:
+        return 0.01
+    return _MEDIUM.score(action, label)
 
 
-def grade_hard(action: Dict, label: Dict) -> float:
-    """Entry point for OpenEnv hard task validation."""
-    return _clamp(_HARD.score(action, label))
+def grade_hard(trajectory_or_action: Any, task_or_label: Any = None) -> float:
+    """Resilient entry point for OpenEnv hard task validation."""
+    action, label = _extract_data(trajectory_or_action, task_or_label)
+    if not label:
+        return 0.01
+    return _HARD.score(action, label)
 
 
 def get_grader(difficulty: str):
-    """Return a callable that returns a clamped score."""
+    """Return a callable for internal environment use."""
     if difficulty == "easy":
         return _EASY
     if difficulty == "medium":

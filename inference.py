@@ -36,7 +36,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 
 # Local imports
-from env.environment import TicketTriageEnv
+from tasks.environment import TicketTriageEnv
 from model.llm_agent import LLMTriageAgent
 from data.tickets import get_tickets_by_difficulty
 

@@ -64,25 +64,25 @@ action_space:
 
 # ─── TASKS ────────────────────────────────────────────────────────────────────
 tasks:
-  - id: easy
+  - id: task_1
     name: Clear Ticket Triage
     description: Tickets with obvious, unambiguous classification signals.
     difficulty: easy
-    grader: env.graders.grade_easy
+    grader: tasks.graders:grade_easy
     score_range: [0.01, 0.99]
 
-  - id: medium
+  - id: task_2
     name: Ambiguous Ticket Triage
     description: Tickets with mixed signals or overlapping issue types.
     difficulty: medium
-    grader: env.graders.grade_medium
+    grader: tasks.graders:grade_medium
     score_range: [0.01, 0.99]
 
-  - id: hard
+  - id: task_3
     name: Multi-Issue Ticket Triage
     description: Tickets describing multiple simultaneous issues or security incidents.
     difficulty: hard
-    grader: env.graders.grade_hard
+    grader: tasks.graders:grade_hard
     score_range: [0.01, 0.99]
 
 # ─── RL CONFIGURATION ─────────────────────────────────────────────────────────

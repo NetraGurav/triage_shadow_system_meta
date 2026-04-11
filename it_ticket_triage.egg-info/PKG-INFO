@@ -1,0 +1,376 @@
+Metadata-Version: 2.4
+Name: it-ticket-triage
+Version: 1.0.0
+Summary: IT Ticket Triage OpenEnv Submission
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi
+Requires-Dist: uvicorn[standard]
+Requires-Dist: pydantic>=2.0
+Requires-Dist: python-dotenv
+Requires-Dist: openai>=1.30.0
+Requires-Dist: gradio>=4.0.0
+Requires-Dist: scikit-learn>=1.4.0
+Requires-Dist: numpy>=1.26.0
+Requires-Dist: pyyaml>=6.0.1
+Requires-Dist: google-generativeai
+Requires-Dist: groq
+Requires-Dist: openenv-core>=0.2.0
+
+---
+title: IT Ticket Triage
+emoji: 🎫
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+tags:
+- openenv
+---
+
+# 🎫 IT Ticket Triage — OpenEnv Environment
+
+[![OpenEnv](https://img.shields.io/badge/OpenEnv-Compliant-blue.svg)](https://github.com/openenv/spec)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Backends](https://img.shields.io/badge/LLM-Groq%20%7C%20Gemini%20%7C%20OpenAI-orange.svg)]()
+
+An enterprise-grade, OpenEnv-compliant AI environment for IT support ticket triage.
+Built for agent training and evaluation using a **regret-based RL reward signal** and a **hybrid agentic architecture**.
+
+### 🚀 Live Demo & Repository
+- **Hugging Face Space**: [Iamnetra/Triage_shadow](https://huggingface.co/spaces/Iamnetra/Triage_shadow)
+- **GitHub Repository**: [NetraGurav/triage_shadow_system_meta](https://github.com/NetraGurav/triage_shadow_system_meta)
+
+---
+
+## ⚡ Key Features
+
+- 🏎️ **Ultra-fast Triage**: Support for Groq (Llama 3.3) and Gemini 1.5 for sub-second triage.
+- 🛡️ **Robust Fallback**: Automatically cascades from LLM providers to a local SFT baseline.
+- 📊 **Shadow RL**: Dense reward signals derived from exhaustive action-space evaluation.
+- 🧩 **Multi-head Classification**: Simultaneous prediction of Category, Priority, and Routing.
+- 🧪 **Task-level Evaluation**: 24 curated scenarios across Easy, Medium, and Hard task levels.
+
+## Environment Description
+
+### What it simulates
+
+Real-world IT helpdesk ticket triage — the process of reading an incoming support
+ticket and making three critical decisions:
+
+1. **Category** — What type of issue is this? (hardware, software, network, access, security)
+2. **Priority** — How urgent is it? (P1 critical → P4 minor)
+3. **Route** — Which team should handle it? (hardware\_team, dev\_team, network\_team, auth\_team, security\_team)
+
+This is a genuine task performed thousands of times daily at every enterprise IT
+department. Accurate triage reduces resolution time and prevents critical issues
+from being buried.
+
+### Why it matters
+
+Mis-triaged tickets cause cascading failures: a ransomware alert routed to the
+hardware team wastes hours. A P4-rated production outage misses SLA deadlines.
+This environment lets agents learn the nuances of ticket classification under
+ambiguity, multi-issue scenarios, and time pressure signals.
+
+---
+
+## Project Structure
+
+```
+it-triage-openenv/
+├── openenv.yaml          # OpenEnv specification
+├── inference.py          # Baseline evaluation pipeline (main entry point)
+├── app.py                # FastAPI + Gradio server
+├── train.py              # SFT model training script
+├── requirements.txt
+├── Dockerfile
+├── pyproject.toml
+│
+├── data/
+│   ├── __init__.py
+│   └── tickets.py        # 24 curated IT tickets (8 easy, 8 medium, 8 hard)
+│
+├── env/
+│   ├── __init__.py
+│   ├── environment.py    # OpenEnv core: reset(), step(), state() + Shadow RL
+│   ├── features.py       # Observation builder (TF-IDF + keyword signals)
+│   ├── graders.py        # Task graders: EasyGrader, MediumGrader, HardGrader
+│   └── models.py         # Pydantic typed models (Observation, Action, Reward)
+│
+├── model/
+│   ├── __init__.py
+│   ├── sft_model.py      # TF-IDF + Logistic Regression SFT baseline
+│   ├── llm_agent.py      # Multi-backend LLM agent (Groq, Gemini, OpenAI)
+│   └── schema.py         # Pydantic schema for LLM structured output
+│
+└── server/
+    ├── __init__.py
+    └── app.py            # Uvicorn entry point
+```
+
+---
+
+## Observation Space
+
+Each observation returned by `reset()` contains:
+
+| Field | Type | Description |
+|---|---|---|
+| `ticket_id` | `string` | Unique identifier (e.g. E001, M005, H003) |
+| `raw_text` | `string` | Original unstructured ticket text |
+| `text_length` | `integer` | Character count of raw text |
+| `word_count` | `integer` | Word count of raw text |
+| `has_urgency_keywords` | `boolean` | Detects: critical, urgent, down, emergency, P1, etc. |
+| `has_hardware_keywords` | `boolean` | Detects: laptop, printer, screen, device, BSOD, etc. |
+| `has_software_keywords` | `boolean` | Detects: app, crash, error, install, update, bug, etc. |
+| `has_network_keywords` | `boolean` | Detects: VPN, WiFi, DNS, firewall, bandwidth, etc. |
+| `has_access_keywords` | `boolean` | Detects: login, password, locked, auth, permission, etc. |
+| `has_security_keywords` | `boolean` | Detects: breach, phishing, malware, ransomware, etc. |
+| `tfidf_features` | `float[50]` | TF-IDF feature vector (50 dimensions) |
+| `task_difficulty` | `string` | easy \| medium \| hard |
+
+## Action Space
+
+Each action submitted to `step()` must contain:
+
+| Field | Type | Valid Values |
+|---|---|---|
+| `category` | `string` | hardware, software, network, access, security |
+| `priority` | `string` | P1, P2, P3, P4 |
+| `route` | `string` | auth\_team, network\_team, hardware\_team, security\_team, dev\_team |
+
+Total action space: 5 × 4 × 5 = **100 possible actions**.
+
+## Reward Signal
+
+Regret-based reward computed via Shadow RL:
+
+```
+reward = agent_score - best_possible_score    (always ≤ 0.0)
+```
+
+- `reward = 0.0` → agent found the optimal action
+- `reward = -0.4` → agent scored 0.6, but 1.0 was achievable
+- Every `step()` exhaustively evaluates all 100 actions to find the best
+
+This provides a **dense, informative training signal** — not just sparse end-of-episode binary feedback.
+
+---
+
+## Task Descriptions
+
+### Easy — Clear Ticket Triage
+Tickets with obvious, unambiguous classification signals. Single issue type,
+explicit keywords, straightforward routing.
+
+**Example:** *"My laptop screen is completely black and will not turn on."*
+→ hardware / P1 / hardware\_team
+
+### Medium — Ambiguous Ticket Triage
+Tickets with mixed signals, incomplete information, or overlapping issue types.
+Requires contextual inference and disambiguation.
+
+**Example:** *"My computer is running extremely slowly. Everything takes forever to load."*
+→ hardware / P3 / hardware\_team (could be software, but no specific SW error cited)
+
+### Hard — Multi-Issue Ticket Triage
+Tickets describing multiple simultaneous issues, cascading failures, or security
+incidents with operational impact. Requires identifying the root cause and primary
+routing.
+
+**Example:** *"Network switches are dropping packets intermittently, causing app timeouts.
+Two servers have reported disk errors in RAID logs. Finance and HR are both down."*
+→ network / P1 / network\_team (network is root cause, hardware is secondary)
+
+### Scoring Weights by Difficulty
+
+| Field | Easy | Medium | Hard |
+|---|---|---|---|
+| Category | 40% | 35% | 30% |
+| Priority | 35% | 35% | 40% |
+| Route | 25% | 30% | 30% |
+
+Hard grader additional mechanics:
+- **+0.05** consistency bonus (category + route both correct)
+- **-0.10** multi-issue penalty (wrong category AND wrong route)
+
+---
+
+## Baseline Scores (SFT Model)
+
+Results from `python inference.py` with the TF-IDF + Logistic Regression baseline:
+
+| Task | Score | Category Acc | Priority Acc | Route Acc | Optimal Rate |
+|---|---|---|---|---|---|
+| Easy | 1.0000 | 100% | 100% | 100% | 100% |
+| Medium | 1.0000 | 100% | 100% | 100% | 100% |
+| Hard | 1.0000 | 100% | 100% | 100% | 100% |
+| **Overall** | **1.0000** | — | — | — | — |
+
+> **Note:** The SFT baseline trains on the full 24-ticket corpus, so in-sample
+> accuracy is ~100%. A held-out evaluation (LOO cross-validation via `python train.py --eval`)
+> gives more realistic estimates. The primary purpose of this baseline is to
+> demonstrate the evaluation pipeline and structured logging format.
+
+---
+
+## Setup Instructions
+
+### 1. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Run evaluation (SFT model — no API key needed)
+
+```bash
+python inference.py
+```
+
+### 3. Run evaluation (LLM agent)
+
+The agent supports multiple backends. Default preference order: **Groq > Gemini > OpenAI**.
+
+**Option A: Groq (Recommended for Speed)**
+```bash
+export MODEL_NAME="llama-3.3-70b-versatile"
+export GROQ_API_KEY="gsk_..."
+python inference.py --agent llm
+```
+
+**Option B: Gemini**
+```bash
+export MODEL_NAME="gemini-1.5-flash"
+export GEMINI_API_KEY="AIza..."
+python inference.py --agent llm
+```
+
+**Option C: OpenAI / Custom / OpenRouter**
+```bash
+export API_BASE_URL="https://api.openai.com/v1"
+export MODEL_NAME="gpt-4o-mini"
+export OPENAI_API_KEY="sk-..."  # or HF_TOKEN
+python inference.py --agent llm
+```
+
+### 4. Start the API server
+
+```bash
+python app.py
+# Server starts at http://localhost:7860
+# Gradio UI at http://localhost:7860/ui
+# API endpoints: POST /reset, POST /step, GET /state, GET /health
+```
+
+# Verify specific backend connectivity
+python test_groq_call.py
+python test_gemini_call.py
+python test_openrouter.py
+
+# Evaluate a single task
+python inference.py --task easy
+
+# Evaluate a specific ticket
+python inference.py --ticket H001
+
+# Train and save the SFT model (with LOO cross-validation)
+python train.py --eval
+
+# Quiet mode (summary only)
+python inference.py --quiet
+```
+
+---
+
+## Docker
+
+```bash
+# Build
+docker build -t it-triage-openenv .
+
+# Run (starts API server)
+docker run -p 7860:7860 it-triage-openenv
+
+# Run inference only (SFT agent)
+docker run it-triage-openenv python inference.py
+
+# Run inference (LLM agent)
+docker run \
+  -e API_BASE_URL="https://api.openai.com/v1" \
+  -e MODEL_NAME="gpt-4o-mini" \
+  -e HF_TOKEN="sk-..." \
+  it-triage-openenv python inference.py --agent llm
+```
+
+---
+
+## OpenEnv Compliance
+
+| Requirement | Implementation |
+|---|---|
+| `reset()` | `env/environment.py` → `TicketTriageEnv.reset()` |
+| `step(action)` | `env/environment.py` → `TicketTriageEnv.step()` |
+| `state()` | `env/environment.py` → `TicketTriageEnv.state()` |
+| Typed models | `env/models.py` → `TriageObservation`, `TriageAction`, `TriageReward` |
+| `openenv.yaml` | Root of project |
+| 3 tasks | easy / medium / hard with own graders |
+| Scores 0–1 | All graders return float in [0.0, 1.0] |
+| Deterministic | Graders are pure functions, `seed=42` |
+
+## Environment Variables
+
+| Variable | Purpose | Example |
+|---|---|---|
+| `GROQ_API_KEY` | Primary backend key (Groq) | `gsk_...` |
+| `GEMINI_API_KEY` | Secondary backend key (Google) | `AIza...` |
+| `API_BASE_URL` | OpenAI-compatible API base URL | `https://api.openai.com/v1` |
+| `MODEL_NAME` | Model identifier | `llama-3.3-70b-versatile` |
+| `OPENAI_API_KEY`| Token for OpenAI/OpenRouter | `sk-...` |
+| `HF_TOKEN` | Bearer token for HF Inference | `hf_...` |
+
+---
+
+## 🧠 Hybrid Agentic Architecture
+
+The system employs a multi-tiered decision logic designed for maximum reliability and performance:
+
+```mermaid
+graph TD
+    A[Incoming Ticket] --> B{LLM Path?}
+    B -->|Yes| C[Groq Llama 3.3]
+    C -->|Fail| D[Gemini 1.5 Flash]
+    D -->|Fail| E[OpenAI / OpenRouter]
+    E -->|Fail| F[SFT Baseline]
+    B -->|No Key| F
+    F --> G[Categorization & Routing]
+    C --> G
+    D --> G
+    E --> G
+    G --> H[Shadow RL Reward Calculation]
+    H --> I[Action Submission]
+```
+
+### LLM Agent Fallback Tiers
+
+1. **🚀 Groq**: Primary backend (ultra-low latency). Attempted if `GROQ_API_KEY` is set.
+2. **♊ Gemini**: Secondary backend. Attempted if `GEMINI_API_KEY` is set and model name includes "gemini".
+3. **🌐 OpenAI / Custom**: Tertiary backend. Attempted if `OPENAI_API_KEY` or `HF_TOKEN` is set.
+4. **📉 SFT Baseline**: Final fallback. If all LLM providers fail or are unconfigured, the system automatically uses the local TF-IDF + Logistic Regression model.
+
+### Shadow RL
+
+Every `step()` call evaluates all **100 possible actions** (5 categories × 4 priorities × 5 routes) and computes:
+
+```
+reward = agent_score - best_possible_score  (always ≤ 0)
+```
+
+- `reward = 0.0` → optimal decision
+- `reward = -0.4` → agent scored 0.6, best was 1.0
+
+This gives a dense, differentiable training signal that supports:
+- Policy gradient methods (reward as advantage)
+- Offline RL (logged shadow scores as dataset)
+- Imitation learning (best\_action as expert label)
