@@ -197,7 +197,6 @@ global_env = TicketTriageEnv()
 def reset_env(req: ResetRequest = ResetRequest()):
     obs = global_env.reset(task=req.task, ticket_id=req.ticket_id)
     safe_obs = dict(obs)
-    safe_obs["tfidf_features"] = obs.get("tfidf_features", [])[:5]
     return ResetResponse(observation=safe_obs)
 
 @app.post("/step", response_model=StepResponse)
@@ -210,8 +209,6 @@ def step_env(req: StepRequest):
 @app.get("/state")
 def get_state():
     s = global_env.state()
-    if s.get("observation") and "tfidf_features" in (s["observation"] or {}):
-        s["observation"]["tfidf_features"] = s["observation"]["tfidf_features"][:5]
     return s
 
 
